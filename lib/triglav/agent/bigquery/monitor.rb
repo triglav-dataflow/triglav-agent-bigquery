@@ -8,12 +8,12 @@ require 'rack/utils'
 module Triglav::Agent
   module Bigquery
     class Monitor < Base::Monitor
-      attr_reader :connection, :resource, :periodic_last_epoch, :singular_last_epoch
+      attr_reader :connection, :resource
 
       # @param [Triglav::Agent::Bigquery::Connection] connection
       # @param [TriglavClient::ResourceResponse] resource
       # resource:
-      #   uri: bigquery://host/database/schema/table
+      #   uri: https://bigquery.cloud.google.com/table/project:dataset.table
       #   unit: 'daily', 'hourly', 'singular', or their combinations such as 'singular,daily,hourly'
       #   timezone: '+09:00'
       #   span_in_days: 32

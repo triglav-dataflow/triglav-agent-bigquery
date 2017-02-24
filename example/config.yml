@@ -23,7 +23,7 @@ defaults: &defaults
       size: 1 # default: same with parallel.size
       timeout: 60 # sec. default: 60
     connection_info:
-      "https://bigquery.cloud.google.com/table/<%= ENV['BIGQUERY_PROJECT'] || 'test' %>":
+      "https://bigquery.cloud.google.com/table/<%= ENV['BIGQUERY_PROJECT'] || 'your-project' %>":
         # auth_method: # service_account, authorized_user, or compute_engine. default: get type from credentials
         credentials_file: ~/.config/gcloud/application_default_credentials.json
         # credentials: |
