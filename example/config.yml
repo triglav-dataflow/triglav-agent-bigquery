@@ -22,18 +22,19 @@ defaults: &defaults
     connection_pool:
       size: 1 # default: same with parallel.size
       timeout: 60 # sec. default: 60
-    date_column: d
-    timestamp_column: t
     connection_info:
-      "bigquery://":
-        host: <%= ENV['VERTICA_HOST'] %>
-        port: <%= ENV['VERTICA_PORT'] %>
-        database: <%= ENV['VERTICA_DATABASE'] %>
-        user: <%= ENV['VERTICA_USER'] %>
-        password: <%= ENV['VERTICA_PASSWORD'] %>
-        resource_pool: <%= ENV['VERTICA_RESOURCE_POOL'] %>
-        interruptable: true
-        read_timeout: 5
+      "https://bigquery.cloud.google.com/table/<%= ENV['BIGQUERY_PROJECT'] || 'test' %>":
+        # auth_method: # service_account, authorized_user, or compute_engine. default: get type from credentials
+        credentials_file: ~/.config/gcloud/application_default_credentials.json
+        # credentials: |
+        #   {
+        #     "private_key_id": "123456789",
+        #     "private_key": "-----BEGIN PRIVATE KEY-----\nABCDEF",
+        #     "client_email": "..."
+        #   }
+        retries: 5
+        timeout_sec: 300
+        open_timeout_sec: 300
 
 development:
   <<: *defaults
