@@ -1,9 +1,9 @@
 require 'triglav/agent/base/connection'
-require 'vertica'
+require 'bigquery'
 require 'uri'
 
 module Triglav::Agent
-  module Vertica
+  module Bigquery
     class Connection < Base::Connection
       attr_reader :connection_info
 
@@ -23,7 +23,7 @@ module Triglav::Agent
         connection_info.delete(:resource_pool)
         connection_info.delete(:memorycap)
         begin
-          @connection = ::Vertica.connect(connection_info)
+          @connection = ::Bigquery.connect(connection_info)
         rescue => e
           $logger.error { "Failed to connect #{connection_info[:host]}:#{connection_info[:port]} with #{connection_info[:user]}" }
           raise e

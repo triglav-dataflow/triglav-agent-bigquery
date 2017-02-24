@@ -4,7 +4,7 @@ require 'test/unit'
 require 'test/unit/rr'
 require 'pry'
 require 'timecop'
-require 'triglav/agent/vertica'
+require 'triglav/agent/bigquery'
 
 TEST_ROOT = __dir__
 ROOT = File.dirname(__dir__)

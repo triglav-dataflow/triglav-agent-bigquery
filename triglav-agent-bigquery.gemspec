@@ -1,17 +1,17 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'triglav/agent/vertica/version'
+require 'triglav/agent/bigquery/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "triglav-agent-vertica"
-  spec.version       = Triglav::Agent::Vertica::VERSION
+  spec.name          = "triglav-agent-bigquery"
+  spec.version       = Triglav::Agent::Bigquery::VERSION
   spec.authors       = ["Naotoshi Seo"]
   spec.email         = ["sonots@gmail.com"]
 
-  spec.summary       = %q{Triglav Agent for Vertica.}
-  spec.description   = %q{Triglav Agent for Vertica.}
-  spec.homepage      = "https://github.com/triglav-dataflow/triglav-agent-vertica"
+  spec.summary       = %q{Triglav Agent for Bigquery.}
+  spec.description   = %q{Triglav Agent for Bigquery.}
+  spec.homepage      = "https://github.com/triglav-dataflow/triglav-agent-bigquery"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "vertica"
+  spec.add_dependency "bigquery"
   spec.add_dependency "triglav-agent"
   spec.add_dependency "triglav_client"
   spec.add_dependency "rack" # Rack::Utils

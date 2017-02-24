@@ -63,10 +63,10 @@ module CreateTable
 
   def connection
     return @connection if @connection
-    @connection ||= Triglav::Agent::Vertica::Connection.new(connection_info)
+    @connection ||= Triglav::Agent::Bigquery::Connection.new(connection_info)
   end
 
   def connection_info
-    @connection_info ||= $setting.dig(:vertica, :connection_info)[:'vertica://']
+    @connection_info ||= $setting.dig(:bigquery, :connection_info)[:'bigquery://']
   end
 end

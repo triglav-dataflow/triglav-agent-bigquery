@@ -14,7 +14,7 @@ defaults: &defaults
     debugging: false
     retries: 3
     retry_interval: 3 # sec
-  vertica:
+  bigquery:
     monitor_interval: 5
     parallel:
       size: 1 # default: 1
@@ -25,7 +25,7 @@ defaults: &defaults
     date_column: d
     timestamp_column: t
     connection_info:
-      "vertica://":
+      "bigquery://":
         host: <%= ENV['VERTICA_HOST'] %>
         port: <%= ENV['VERTICA_PORT'] %>
         database: <%= ENV['VERTICA_DATABASE'] %>

@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
-require 'triglav/agent/vertica/monitor'
+require 'triglav/agent/bigquery/monitor'
 require_relative 'helper'
 require_relative 'support/create_table'
 
-# This test requires a real connection to vertica, now
+# This test requires a real connection to bigquery, now
 # Configure .env to set proper connection_info of test/config.yml
 #
 # TRIGLAV_URL=http://localhost:7800
 # TRIGLAV_USERNAME=triglav_test
 # TRIGLAV_PASSWORD=triglav_test
-# VERTICA_HOST=vertica
+# VERTICA_HOST=bigquery
 # VERTICA_PORT=5433
 # VERTICA_DATABASE=vdb
 # VERTICA_USER=dbwrite
@@ -18,7 +18,7 @@ require_relative 'support/create_table'
 if File.exist?(File.join(ROOT, '.env'))
   class TestMonitor < Test::Unit::TestCase
     include CreateTable
-    Monitor = Triglav::Agent::Vertica::Monitor
+    Monitor = Triglav::Agent::Bigquery::Monitor
 
     class << self
       def startup
@@ -35,7 +35,7 @@ if File.exist?(File.join(ROOT, '.env'))
 
     def build_resource(params = {})
       TriglavClient::ResourceResponse.new({
-        uri: "vertica://#{host}:#{port}/#{db}/#{schema}/#{table}",
+        uri: "bigquery://#{host}:#{port}/#{db}/#{schema}/#{table}",
         unit: 'daily',
         timezone: '+09:00',
         span_in_days: 2,
@@ -122,7 +122,7 @@ if File.exist?(File.join(ROOT, '.env'))
 
     def test_query_date
       resource = build_resource(
-        uri: "vertica://#{host}:#{port}/#{db}/#{schema}/#{table}?date=date"
+        uri: "bigquery://#{host}:#{port}/#{db}/#{schema}/#{table}?date=date"
       )
       monitor = Monitor.new(connection, resource, last_epoch: 0)
       q_date = monitor.send(:q_date)
@@ -131,7 +131,7 @@ if File.exist?(File.join(ROOT, '.env'))
 
     def test_query_timestamp
       resource = build_resource(
-        uri: "vertica://#{host}:#{port}/#{db}/#{schema}/#{table}?timestamp=timestamp"
+        uri: "bigquery://#{host}:#{port}/#{db}/#{schema}/#{table}?timestamp=timestamp"
       )
       monitor = Monitor.new(connection, resource, last_epoch: 0)
       q_timestamp = monitor.send(:q_timestamp)
@@ -146,7 +146,7 @@ if File.exist?(File.join(ROOT, '.env'))
     # * Only equality is supported now
     def test_query_where
       resource = build_resource(
-        uri: "vertica://#{host}:#{port}/#{db}/#{schema}/#{table}?where[id]=0&where[uuid]='0'&where[d]=2016-12-30"
+        uri: "bigquery://#{host}:#{port}/#{db}/#{schema}/#{table}?where[id]=0&where[uuid]='0'&where[d]=2016-12-30"
       )
       monitor = Monitor.new(connection, resource, last_epoch: 0)
       q_where = monitor.send(:q_where)
@@ -156,7 +156,7 @@ if File.exist?(File.join(ROOT, '.env'))
     def test_get_events_with_query_where
       resource = build_resource(
         unit: 'singular,daily,hourly',
-        uri: "vertica://#{host}:#{port}/#{db}/#{schema}/#{table}?where[id]=0&where[uuid]='0'"
+        uri: "bigquery://#{host}:#{port}/#{db}/#{schema}/#{table}?where[id]=0&where[uuid]='0'"
       )
       monitor = Monitor.new(connection, resource, last_epoch: 0)
       success = monitor.process do |events|

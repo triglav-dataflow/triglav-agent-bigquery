@@ -1,19 +1,19 @@
 require 'triglav/agent/base/monitor'
-require 'vertica'
+require 'bigquery'
 require 'uri'
 require 'cgi'
 require 'securerandom'
 require 'rack/utils'
 
 module Triglav::Agent
-  module Vertica
+  module Bigquery
     class Monitor < Base::Monitor
       attr_reader :connection, :resource, :periodic_last_epoch, :singular_last_epoch
 
-      # @param [Triglav::Agent::Vertica::Connection] connection
+      # @param [Triglav::Agent::Bigquery::Connection] connection
       # @param [TriglavClient::ResourceResponse] resource
       # resource:
-      #   uri: vertica://host/database/schema/table
+      #   uri: bigquery://host/database/schema/table
       #   unit: 'daily', 'hourly', 'singular', or their combinations such as 'singular,daily,hourly'
       #   timezone: '+09:00'
       #   span_in_days: 32
@@ -118,10 +118,10 @@ module Triglav::Agent
         events = build_events(unit, rows)
         new_last_epoch = build_latest_epoch(rows)
         [events, new_last_epoch, rows]
-      rescue ::Vertica::Error::QueryError => e
+      rescue ::Bigquery::Error::QueryError => e
         $logger.warn { "#{e.class} #{e.message}" } # e.message includes sql
         nil
-      rescue ::Vertica::Error::TimedOutError => e
+      rescue ::Bigquery::Error::TimedOutError => e
         $logger.warn { "#{e.class} #{e.message} SQL:#{sql}" }
         nil
       end
@@ -226,11 +226,11 @@ module Triglav::Agent
       end
 
       def q_periodic_last_epoch
-        @q_periodic_last_epoch ||= ::Vertica.quote(periodic_last_epoch)
+        @q_periodic_last_epoch ||= ::Bigquery.quote(periodic_last_epoch)
       end
 
       def q_singular_last_epoch
-        @q_singular_last_epoch ||= ::Vertica.quote(singular_last_epoch)
+        @q_singular_last_epoch ||= ::Bigquery.quote(singular_last_epoch)
       end
 
       def parsed_uri
@@ -254,11 +254,11 @@ module Triglav::Agent
       end
 
       def date_column
-        parsed_query['date'] || $setting.dig(:vertica, :date_column) || 'd'
+        parsed_query['date'] || $setting.dig(:bigquery, :date_column) || 'd'
       end
 
       def timestamp_column
-        parsed_query['timestamp'] || $setting.dig(:vertica, :timestamp_column) || 't'
+        parsed_query['timestamp'] || $setting.dig(:bigquery, :timestamp_column) || 't'
       end
 
       def where
@@ -266,23 +266,23 @@ module Triglav::Agent
       end
 
       def q_db
-        @q_db ||= ::Vertica.quote_identifier(db)
+        @q_db ||= ::Bigquery.quote_identifier(db)
       end
 
       def q_schema
-        @q_schema ||= ::Vertica.quote_identifier(schema)
+        @q_schema ||= ::Bigquery.quote_identifier(schema)
       end
 
       def q_table
-        @q_table ||= ::Vertica.quote_identifier(table)
+        @q_table ||= ::Bigquery.quote_identifier(table)
       end
 
       def q_date
-        @q_date ||= ::Vertica.quote_identifier(date_column)
+        @q_date ||= ::Bigquery.quote_identifier(date_column)
       end
 
       def q_timestamp
-        @q_timestamp ||= ::Vertica.quote_identifier(timestamp_column)
+        @q_timestamp ||= ::Bigquery.quote_identifier(timestamp_column)
       end
 
       # Value specification:
@@ -302,7 +302,7 @@ module Triglav::Agent
               val = val[1..-2]
             end
           end
-          "#{::Vertica.quote_identifier(col)} = #{::Vertica.quote(val)}"
+          "#{::Bigquery.quote_identifier(col)} = #{::Bigquery.quote(val)}"
         end.join(' AND ')
       end
     end

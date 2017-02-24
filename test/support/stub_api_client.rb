@@ -12,7 +12,7 @@ module StubApiClient
 
   def dummy_resource
     TriglavClient::AggregatedResourceEachResponse.new(
-      uri: 'vertica://vdev/vdb/sandbox/triglav_test',
+      uri: 'bigquery://vdev/vdb/sandbox/triglav_test',
       unit: 'daily',
       timezone: '+09:00',
       span_in_days: 2,

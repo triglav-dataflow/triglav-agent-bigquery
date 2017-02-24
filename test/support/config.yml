@@ -10,12 +10,12 @@ test:
       username: <%= ENV['TRIGLAV_USERNAME'] %>
       password: <%= ENV['TRIGLAV_PASSWORD'] %>
       authenticator: local
-  vertica:
+  bigquery:
     watch_interval: 5
     date_column: d
     timestamp_column: t
     connection_info:
-      "vertica://":
+      "bigquery://":
         host: <%= ENV['VERTICA_HOST'] %>
         port: <%= ENV['VERTICA_PORT'] %>
         database: <%= ENV['VERTICA_DATABASE'] %>

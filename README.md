@@ -1,6 +1,6 @@
-# Triglav::Agent::Vertica
+# Triglav::Agent::Bigquery
 
-Triglav Agent for Vertica
+Triglav Agent for BigQuery
 
 ## Requirements
 
@@ -8,16 +8,16 @@ Triglav Agent for Vertica
 
 ## Prerequisites
 
-* Vertica table must have a DATE column for `daily` resource monitor
-* Vertica table must have a TIMESTAMP or TIMESTAMPTZ column for `hourly` resource monitor
-* Vertica view is not supported (since `epoch` column can not be retrieved)
+* Bigquery table must have a DATE column for `daily` resource monitor
+* Bigquery table must have a TIMESTAMP or TIMESTAMPTZ column for `hourly` resource monitor
+* Bigquery view is not supported (since `epoch` column can not be retrieved)
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'triglav-agent-vertica'
+gem 'triglav-agent-bigquery'
 ```
 
 And then execute:
@@ -26,12 +26,12 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install triglav-agent-vertica
+    $ gem install triglav-agent-bigquery
 
 ## CLI
 
 ```
-Usage: triglav-agent-vertica [options]
+Usage: triglav-agent-bigquery [options]
     -c, --config VALUE               Config file (default: config.yml)
     -s, --status VALUE               Status stroage file (default: status.yml)
     -t, --token VALUE                Triglav access token storage file (default: token.yml)
@@ -44,7 +44,7 @@ Usage: triglav-agent-vertica [options]
 Run as:
 
 ```
-TRIGLAV_ENV=development bundle exec triglav-agent-vertica --dotenv -c config.yml
+TRIGLAV_ENV=development bundle exec triglav-agent-bigquery --dotenv -c config.yml
 ```
 
 ## Configuration
@@ -63,19 +63,19 @@ Specify triglav api url, and a credential to authenticate.
 
 The access token obtained is stored into a token storage file (--token option).
 
-### vertica section
+### bigquery section
 
-This section is the special section for triglav-agent-vertica.
+This section is the special section for triglav-agent-bigquery.
 
 * **monitor_interval**: The interval to watch tables (number, default: 60)
-* **connection_info**: key-value pairs of vertica connection info where keys are resource URI pattern in regular expression, and values are connection infomation
+* **connection_info**: key-value pairs of bigquery connection info where keys are resource URI pattern in regular expression, and values are connection infomation
 
 ### Specification of Resource URI
 
 Resource URI must be a form of:
 
 ```
-vertica://#{host}:#{port}/#{db}/#{schema}/#{table}
+bigquery://#{host}:#{port}/#{db}/#{schema}/#{table}
 ```
 
 URI also accepts query parameters of `date`, `timestamp`, and `where`.
@@ -102,7 +102,7 @@ ex)
   * Refresh the access token if it is expired
 2. Repeat followings in `monitor_interval` seconds:
 3. Obtain resource (table) lists of the specified prefix (keys of connection_info) from triglav.
-4. Connect to vertica with an appropriate connection info for a resource uri, and find tables which are newer than last check.
+4. Connect to bigquery with an appropriate connection info for a resource uri, and find tables which are newer than last check.
 5. Store checking information into the status storage file for the next time check.
 
 ## Development
@@ -119,17 +119,17 @@ Edit `.env` or `config.yml` file directly.
 
 Start up triglav api on localhost.
 
-Run triglav-anget-vertica as:
+Run triglav-anget-bigquery as:
 
 ```
-TRIGLAV_ENV=development bundle exec triglav-agent-vertica --dotenv --debug -c example/config.yml
+TRIGLAV_ENV=development bundle exec triglav-agent-bigquery --dotenv --debug -c example/config.yml
 ```
 
 The debug mode with --debug option ignores the `last_epoch` value in status file.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/triglav-workflow/triglav-agent-vertica. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/triglav-workflow/triglav-agent-bigquery. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 
 ## License

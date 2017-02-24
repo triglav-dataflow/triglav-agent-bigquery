@@ -1,6 +1,6 @@
 module Triglav
   module Agent
-    module Vertica
+    module Bigquery
       VERSION = "0.1.0"
     end
   end
