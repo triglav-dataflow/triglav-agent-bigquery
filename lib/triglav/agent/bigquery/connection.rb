@@ -3,6 +3,7 @@ require 'uri'
 require 'google/apis/bigquery_v2'
 require 'google/api_client/auth/key_utils'
 require 'securerandom'
+require 'ini_file'
 
 # monkey patch not to create representable objects which consumes lots of memory
 # @see http://qiita.com/sonots/items/1271f3d426cda6c891c0
@@ -39,10 +40,51 @@ module Triglav::Agent
         @connection_info = connection_info
       end
 
-      # @return [Hash] {table_id:, creation_time:, last_modified_time:, location:, num_bytes:, num_rows:}
+      def client
+        return @cached_client if @cached_client && @cached_client_expiration > Time.now
+
+        client = Google::Apis::BigqueryV2::BigqueryService.new
+        client.request_options.retries = retries
+        client.request_options.timeout_sec = timeout_sec
+        client.request_options.open_timeout_sec = open_timeout_sec
+
+        scope = "https://www.googleapis.com/auth/bigquery"
+
+        case auth_method
+        when 'authorized_user'
+          auth = Signet::OAuth2::Client.new(
+            token_credential_uri: "https://accounts.google.com/o/oauth2/token",
+            audience: "https://accounts.google.com/o/oauth2/token",
+            scope: scope,
+            client_id:     credentials['client_id'],
+            client_secret: credentials['client_secret'],
+            refresh_token: credentials['refresh_token']
+          )
+          auth.refresh!
+        when 'compute_engine'
+          auth = Google::Auth::GCECredentials.new
+        when 'service_account'
+          key = StringIO.new(credentials.to_json)
+          auth = Google::Auth::ServiceAccountCredentials.make_creds(json_key_io: key, scope: @scope)
+        when 'application_default'
+          auth = Google::Auth.get_application_default([scope])
+        else
+          raise ConfigError, "Unknown auth method: #{auth_method}"
+        end
+
+        client.authorization = auth
+
+        @cached_client_expiration = Time.now + 1800
+        @cached_client = client
+      end
+
+      # @return [Hash] {id:, creation_time:, last_modified_time:, location:, num_bytes:, num_rows:}
+      #
+      # creation_time [Integer] milli sec
+      # last_modified_time [Integer] milli sec
       def get_table(dataset:, table:)
         begin
-          logger.debug { "Get table... #{project}:#{dataset}.#{table}" }
+          $logger.debug { "Get table... #{project}:#{dataset}.#{table}" }
           response = client.get_table(project, dataset, table)
         rescue Google::Apis::ServerError, Google::Apis::ClientError, Google::Apis::AuthorizationError => e
           if e.status_code == 404 # not found
@@ -54,7 +96,7 @@ module Triglav::Agent
         end
 
         result = {
-          table_id: response.id,
+          id: response.id, # project:dataset.table
           creation_time: response.creation_time.to_i, # millisec
           last_modified_time: response.last_modified_time.to_i, # millisec
           location: response.location,
@@ -64,8 +106,14 @@ module Triglav::Agent
       end
 
       # @return [Array] [partition_id, creation_time, last_modified_time]
-      def get_partitions_summary(dataset:, table:)
-        query("select partition_id,creation_time,last_modified_time from [#{dataset}.#{table}$__PARTITIONS_SUMMARY__]")
+      #
+      # partition_id [String] partition id such as "20160307"
+      # creation_time [Integer] milli sec
+      # last_modified_time [Integer] milli sec
+      def get_partitions_summary(dataset:, table:, limit: nil)
+        limit_stmt = limit ? " LIMIT #{limit.to_i}" : ""
+        result = query("select partition_id,creation_time,last_modified_time from [#{dataset}.#{table}$__PARTITIONS_SUMMARY__]#{limit_stmt}")
+        result[:rows].map {|r| v = r[:f].map {|c| c[:v] }; [v[0], v[1].to_i, v[2].to_i] }
       end
 
       private
@@ -76,7 +124,7 @@ module Triglav::Agent
 
         body  = {
           job_reference: {
-            project_id: project_id,
+            project_id: project,
             job_id: "job_#{SecureRandom.uuid}",
           },
           configuration: {
@@ -90,8 +138,8 @@ module Triglav::Agent
         }
         opts = {}
 
-        $logger.info { "insert_job(#{project_id}, #{body}, #{opts})" }
-        job_res = connection.insert_job(project_id, body, opts)
+        $logger.info { "insert_job(#{project}, #{body}, #{opts})" }
+        job_res = client.insert_job(project, body, opts)
 
         if options[:dry_run]
           {
@@ -104,8 +152,8 @@ module Triglav::Agent
 
           res = {}
           while true
-            res = JSON.parse(connection.get_job_query_results(
-              project_id,
+            res = JSON.parse(client.get_job_query_results(
+              project,
               job_id,
             ), symbolize_names: true)
             break if res[:jobComplete]
@@ -117,14 +165,14 @@ module Triglav::Agent
           end
 
           if res[:rows]
-            res[:rows].each(&block)
+            # res[:rows].each(&block)
             current_row += res[:rows].size
           end
           total_rows = res[:totalRows].to_i
 
           while current_row < total_rows
-            res = JSON.parse(connection.get_job_query_results(
-              project_id,
+            res = JSON.parse(client.get_job_query_results(
+              project,
               job_id,
               start_index: current_row
             ), symbolize_names: true)
@@ -136,24 +184,6 @@ module Triglav::Agent
 
           res
         end
-      end
-
-      def connection
-        return @cached_client if @cached_client && @cached_client_expiration > Time.now
-
-        client = Google::Apis::BigqueryV2::BigqueryService.new
-        client.request_options.retries = retries
-        client.request_options.timeout_sec = timeout_sec
-        client.request_options.open_timeout_sec = open_timeout_sec
-
-        scope = "https://www.googleapis.com/auth/bigquery"
-
-        key = StringIO.new(config[:json_key])
-        auth = Google::Auth::ServiceAccountCredentials.make_creds(json_key_io: key, scope: scope)
-        client.authorization = auth
-
-        @cached_client_expiration = Time.now + 1800
-        @cached_client = client
       end
 
       # compute_engine, authorized_user, service_account
@@ -187,20 +217,20 @@ module Triglav::Agent
       end
 
       def config_default
-        # {'core'=>{'account'=>'xxx','project'=>'xxx'},'compute'=>{'zone'=>'xxx}}
-        @config_default ||= File.readable?(config_default_file) ? IniFile.load(config_default_file).to_h : {}
+        # {core:{account:'xxx',project:'xxx'},compute:{zone:'xxx}}
+        @config_default ||= File.readable?(config_default_file) ? IniFile.load(config_default_file).to_hash : {}
       end
 
       def service_account_default
-        (config_default['core'] || {})['account']
+        (config_default[:core] || {})[:account]
       end
 
       def project_default
-        (config_default['core'] || {})['project']
+        (config_default[:core] || {})[:project]
       end
 
       def zone_default
-        (config_default['compute'] || {})['zone']
+        (config_default[:compute] || {})[:zone]
       end
 
       def project

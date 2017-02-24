@@ -1,9 +1,7 @@
 require 'triglav/agent/base/monitor'
-require 'bigquery'
 require 'uri'
 require 'cgi'
 require 'securerandom'
-require 'rack/utils'
 
 module Triglav::Agent
   module Bigquery
