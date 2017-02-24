@@ -1,0 +1,42 @@
+defaults: &defaults
+  serverengine:
+    log: 'STDOUT'
+    log_level: 'debug'
+    log_rotate_age: 5
+    log_rotate_size: 10485760
+  triglav:
+    url: <%= ENV['TRIGLAV_URL'] || 'http://localhost:7800' %>
+    credential:
+      username: <%= ENV['TRIGLAV_USERNAME'] || 'triglav_test' %>
+      password: <%= ENV['TRIGLAV_PASSWORD'] || 'triglav_test' %>
+      authenticator: local
+    timeout: 60
+    debugging: false
+    retries: 3
+    retry_interval: 3 # sec
+  vertica:
+    monitor_interval: 5
+    parallel:
+      size: 1 # default: 1
+      type: 'thread' # thread or process. default: thread
+    connection_pool:
+      size: 1 # default: same with parallel.size
+      timeout: 60 # sec. default: 60
+    date_column: d
+    timestamp_column: t
+    connection_info:
+      "vertica://":
+        host: <%= ENV['VERTICA_HOST'] %>
+        port: <%= ENV['VERTICA_PORT'] %>
+        database: <%= ENV['VERTICA_DATABASE'] %>
+        user: <%= ENV['VERTICA_USER'] %>
+        password: <%= ENV['VERTICA_PASSWORD'] %>
+        resource_pool: <%= ENV['VERTICA_RESOURCE_POOL'] %>
+        interruptable: true
+        read_timeout: 5
+
+development:
+  <<: *defaults
+
+test:
+  <<: *defaults

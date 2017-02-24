@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+
+require 'triglav/agent/vertica'
+Triglav::Agent::Configuration.configure do |config|
+  config.name = :vertica
+  # config.cli_class = Triglav::Agent::Vertica::CLI
+  # config.setting_class = Triglav::Agent::Vertica::Setting
+  # config.worker_module = Triglav::Agent::Vertica::Worker
+  # config.processor_class = Triglav::Agent::Vertica::Processor
+  config.monitor_class = Triglav::Agent::Vertica::Monitor
+  config.connection_class = Triglav::Agent::Vertica::Connection
+end
+Triglav::Agent::Configuration.cli_class.new.run
