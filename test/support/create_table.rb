@@ -12,7 +12,7 @@ module CreateTable
   end
 
   def table
-    'table'
+    'test_table'
   end
 
   def table_with_suffix1
@@ -23,16 +23,24 @@ module CreateTable
     "#{table}_20170307"
   end
 
+  def table_with_hourly_suffix1
+    "#{table}_22_20170306"
+  end
+
+  def table_with_hourly_suffix2
+    "#{table}_23_20170306"
+  end
+
   def partitioned_table
-    'partitioned_table'
+    'test_partitioned_table'
   end
 
   def partitioned_table_with_partition1
-    'partitioned_table$20170306'
+    "#{partitioned_table}$20170306"
   end
 
   def partitioned_table_with_partition2
-    'partitioned_table$20170307'
+    "#{partitioned_table}$20170307"
   end
 
   def with_ignore_already_exists
@@ -53,8 +61,11 @@ module CreateTable
 
   def setup_tables
     with_ignore_already_exists { create_dataset }
+    with_ignore_already_exists { create_table(table: table) }
     with_ignore_already_exists { create_table(table: table_with_suffix1) }
     with_ignore_already_exists { create_table(table: table_with_suffix2) }
+    with_ignore_already_exists { create_table(table: table_with_hourly_suffix1) }
+    with_ignore_already_exists { create_table(table: table_with_hourly_suffix2) }
     with_ignore_already_exists { create_partitioned_table(table: partitioned_table) }
     with_ignore_already_exists { create_partition(table: partitioned_table_with_partition1) }
     with_ignore_already_exists { create_partition(table: partitioned_table_with_partition2) }

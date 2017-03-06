@@ -12,16 +12,12 @@ module Triglav::Agent
       # @param [TriglavClient::ResourceResponse] resource
       # resource:
       #   uri: https://bigquery.cloud.google.com/table/project:dataset.table
-      #   unit: 'daily', 'hourly', 'singular', or their combinations such as 'singular,daily,hourly'
+      #   unit: 'daily', 'hourly', or 'singular'
       #   timezone: '+09:00'
       #   span_in_days: 32
-      #
-      # View is not supported
       def initialize(connection, resource)
         @connection = connection
         @resource = resource
-        @periodic_last_epoch = $setting.debug? ? 0 : get_from_status_file(:periodic_last_epoch)
-        @singular_last_epoch = $setting.debug? ? 0 : get_from_status_file(:singular_last_epoch)
       end
 
       def process
@@ -30,278 +26,212 @@ module Triglav::Agent
           return nil
         end
 
-        $logger.debug {
-          msgs = ["Start process #{resource.uri}"]
-          msgs << "periodic_last_epoch:#{periodic_last_epoch}" if periodic_last_epoch
-          msgs << "singular_last_epoch:#{singular_last_epoch}" if singular_last_epoch
-          msgs.join(', ')
-        }
+        $logger.debug { "Start process #{resource.uri}" }
 
-        if periodic?
-          periodic_events, new_periodic_last_epoch = get_periodic_events
-          events = periodic_events || []
-        end
-        if singular?
-          singular_events, new_singular_last_epoch = get_singular_events
-          events.nil? ? (events = singular_events) : events.concat(singular_events || [])
-        end
+        events, new_last_modified_times = get_events
 
-        $logger.debug {
-          msgs = ["Finish process #{resource.uri}"]
-          msgs << "periodic_last_epoch:#{periodic_last_epoch}" if periodic_last_epoch
-          msgs << "singular_last_epoch:#{singular_last_epoch}" if singular_last_epoch
-          msgs << "new_periodic_last_epoch:#{new_periodic_last_epoch}" if new_periodic_last_epoch
-          msgs << "new_singular_last_epoch:#{new_singular_last_epoch}" if new_singular_last_epoch
-          msgs.join(', ')
-        }
+        $logger.debug { "Finish process #{resource.uri}" }
 
         return nil if events.nil? || events.empty?
         yield(events) if block_given? # send_message
-        update_status_file(:periodic_last_epoch, new_periodic_last_epoch) if new_periodic_last_epoch
-        update_status_file(:singular_last_epoch, new_singular_last_epoch) if new_singular_last_epoch
+        update_status_file(new_last_modified_times)
         true
-      end
-
-      def get_periodic_events
-        if hourly?
-          events, new_last_epoch, rows = get_hourly_events
-          if daily?
-            daily_events = build_daily_events_from_hourly(rows)
-            events.concat(daily_events)
-          end
-          [events, new_last_epoch]
-        elsif daily?
-          get_daily_events
-        else
-          raise
-        end
-      end
-
-      def get_singular_events
-        sql = "select " \
-          "NULL AS d, NULL AS h, max(epoch) " \
-          "from #{q_db}.#{q_schema}.#{q_table} " \
-          "#{q_where.empty? ? '' : "where #{q_where} "}" \
-          "having max(epoch) > #{q_singular_last_epoch}"
-        query_and_get_events(:singular, sql)
-      end
-
-      def get_hourly_events
-        sql = "select " \
-          "#{q_date} AS d, DATE_PART('hour', #{q_timestamp}) AS h, max(epoch) " \
-          "from #{q_db}.#{q_schema}.#{q_table} " \
-          "where #{q_date} IN ('#{dates.join("','")}') " \
-          "#{q_where.empty? ? '' : "AND #{q_where} "}" \
-          "group by d, h having max(epoch) > #{q_periodic_last_epoch} " \
-          "order by d, h"
-        query_and_get_events(:hourly, sql)
-      end
-
-      def get_daily_events
-        sql = "select " \
-          "#{q_date} AS d, 0 AS h, max(epoch) " \
-          "from #{q_db}.#{q_schema}.#{q_table} " \
-          "where #{q_date} IN ('#{dates.join("','")}') " \
-          "#{q_where.empty? ? '' : "AND #{q_where} "}" \
-          "group by d having max(epoch) > #{q_periodic_last_epoch} " \
-          "order by d"
-        query_and_get_events(:daily, sql)
       end
 
       private
 
-      def query_and_get_events(unit, sql)
-        $logger.debug { "Query: #{sql}" }
-        rows = connection.query(sql)
-        events = build_events(unit, rows)
-        new_last_epoch = build_latest_epoch(rows)
-        [events, new_last_epoch, rows]
-      rescue ::Bigquery::Error::QueryError => e
-        $logger.warn { "#{e.class} #{e.message}" } # e.message includes sql
-        nil
-      rescue ::Bigquery::Error::TimedOutError => e
-        $logger.warn { "#{e.class} #{e.message} SQL:#{sql}" }
+      def last_modified_times
+        @last_modified_times ||= get_last_modified_times
+      end
+
+      def get_events
+        if partitioned_table?
+          new_last_modified_times = get_new_last_modified_times_for_partitioned_table
+        else
+          new_last_modified_times = get_new_last_modified_times_for_non_partitioned_table
+        end
+        latest_tables = select_latest_tables(new_last_modified_times)
+        events = build_events(latest_tables)
+        [events, new_last_modified_times]
+      rescue => e
+        $logger.warn { "#{e.class} #{e.message} #{e.backtrace.join("\n  ")}" }
         nil
       end
 
-      def update_status_file(key, last_epoch)
+      def update_status_file(last_modified_times)
+        last_modified_times[:max] = last_modified_times.values.max
         Triglav::Agent::StorageFile.set(
           $setting.status_file,
-          [resource.uri.to_sym, key.to_sym],
-          last_epoch
+          [resource.uri.to_sym, :last_modified_time],
+          last_modified_times
         )
       end
 
-      def get_from_status_file(key)
-        Triglav::Agent::StorageFile.getsetnx(
+      def get_last_modified_times
+        max_last_modified_time = Triglav::Agent::StorageFile.getsetnx(
           $setting.status_file,
-          [resource.uri.to_sym, key.to_sym],
-          get_current_epoch
+          [resource.uri.to_sym, :last_modified_time, :max],
+          $setting.debug? ? 0 : get_current_time
         )
+        last_modified_times = Triglav::Agent::StorageFile.get(
+          $setting.status_file,
+          [resource.uri.to_sym, :last_modified_time]
+        )
+        removes = last_modified_times.keys - tables.keys
+        appends = tables.keys - last_modified_times.keys
+        removes.each {|path| last_modified_times.delete(path) }
+        appends.each {|path| last_modified_times[path] = max_last_modified_time }
+        last_modified_times
       end
 
-      def get_current_epoch
-        connection.query('select GET_CURRENT_EPOCH()').first.first
+      def get_current_time
+        (Time.now.to_f * 1000).to_i # msec
       end
 
       def resource_valid?
-        resource_unit_valid? && !resource.timezone.nil? && !resource.span_in_days.nil?
+        self.class.resource_valid?(resource)
       end
 
-      def resource_unit_valid?
-        resource.unit.split(',').each do |item|
-          return false unless %w[singular daily hourly].include?(item)
+      def self.resource_valid?(resource)
+        resource_unit_valid?(resource) && !resource.timezone.nil? && !resource.span_in_days.nil?
+      end
+
+      # Two or more combinations are not allowed for hdfs because
+      # * hourly should have %d, %H
+      # * daily should have %d, but not have %H
+      # * singualr should not have %d
+      # These conditions conflict.
+      def self.resource_unit_valid?(resource)
+        units = resource.unit.split(',').sort
+        return false if units.size >= 2
+        if units.include?('hourly')
+          return false unless resource.uri.match(/%H/)
+        end
+        # if units.include?('daily')
+        #   return false unless resource.uri.match(/%d/)
+        # end
+        if units.include?('singular')
+          return false if resource.uri.match(/%[YmdH]/)
         end
         true
-      end
-
-      def hourly?
-        return @is_hourly unless @is_hourly.nil?
-        @is_hourly = resource.unit.include?('hourly')
-      end
-
-      def daily?
-        return @is_daily unless @is_daily.nil?
-        @is_daily = resource.unit.include?('daily')
-      end
-
-      def singular?
-        return @is_singular unless @is_singular.nil?
-        @is_singular = resource.unit.include?('singular')
-      end
-
-      def periodic?
-        hourly? or daily?
       end
 
       def dates
         return @dates if @dates
         now = Time.now.localtime(resource.timezone)
         @dates = resource.span_in_days.times.map do |i|
-          (now - (i * 86000)).strftime('%Y-%m-%d')
+          (now - (i * 86000)).to_date
         end
       end
 
-      def build_latest_epoch(rows)
-        rows.map {|row| row[2] }.max
+      def project_dataset_table
+        @project_dataset_table ||= resource.uri.split('/').last
       end
 
-      def build_events(unit, rows)
-        rows.map do |row|
-          date, hour, epoch = row[0], row[1], row[2]
+      def project
+        @project ||= project_dataset_table.split(':').first
+      end
+
+      def dataset
+        @dataset ||= project_dataset_table.split(':').last.chomp(".#{table}")
+      end
+
+      def table
+        @table ||= project_dataset_table.split('.').last
+      end
+
+      def partitioned_table?
+        table.include?('$')
+      end
+
+      def table_without_partition
+        @table_without_partition ||= table.split('$').first
+      end
+
+      def dates
+        return @dates if @dates
+        now = Time.now.localtime(resource.timezone)
+        @dates = resource.span_in_days.times.map do |i|
+          (now - (i * 86000)).to_date
+        end
+      end
+
+      def tables
+        return @tables if @tables
+        tables = {}
+        # If table becomes same, use newer date
+        case resource.unit
+        when 'hourly'
+          dates.each do |date|
+            date_time = date.to_time
+            (0..23).each do |hour|
+              _table = (date_time + hour * 3600).strftime(table)
+              tables[_table.to_sym] = [date, hour]
+            end
+          end
+        when 'daily'
+          hour = 0
+          dates.each do |date|
+            _table = date.strftime(table)
+            tables[_table.to_sym] = [date, hour]
+          end
+        when 'singular'
+          tables[table.to_sym] = [nil, nil]
+        end
+        @tables = tables
+      end
+
+      def get_new_last_modified_times_for_partitioned_table
+        rows = connection.get_partitions_summary(
+          project: project, dataset: dataset, table: table_without_partition, limit: resource.span_in_days
+        )
+        new_last_modified_times = {}
+        rows.each do |partition, creation_time, last_modified_time|
+          new_last_modified_times["#{table_without_partition}$#{partition}".to_sym] = last_modified_time
+        end
+        new_last_modified_times
+      end
+
+      def get_new_last_modified_times_for_non_partitioned_table
+        new_last_modified_times = {}
+        tables.each do |table, date_hour|
+          begin
+            result = connection.get_table(project: project, dataset: dataset, table: table)
+            new_last_modified_times[table.to_sym] = result[:last_modified_time]
+          rescue Connection::NotFoundError => e
+            $logger.debug { "#{project}:#{dataset}.#{table.to_s} #=> does not exist" }
+          rescue Connection::Error => e
+            $logger.warn { "#{project}:#{dataset}.#{table.to_s} #=> #{e.class} #{e.message}" }
+          end
+        end
+        new_last_modified_times
+      end
+
+      def select_latest_tables(new_last_modified_times)
+        new_last_modified_times.select do |table, last_modified_time|
+          is_newer = last_modified_time > (last_modified_times[table] || 0)
+          $logger.debug { "#{project}:#{dataset}.#{table} #=> latest_modified_time:#{last_modified_time}, is_newer:#{is_newer}" }
+          is_newer
+        end
+      end
+
+      def build_events(latest_tables)
+        latest_tables.map do |table, last_modified_time|
+          date, hour = date_hour = tables[table]
           {
             uuid: SecureRandom.uuid,
             resource_uri: resource.uri,
-            resource_unit: unit.to_s,
+            resource_unit: resource.unit,
             resource_time: date_hour_to_i(date, hour, resource.timezone),
             resource_timezone: resource.timezone,
-            payload: (date ? {d: date.to_s, h: hour.to_i} : {}).merge!(epoch: epoch).to_json,
-          }
-        end
-      end
-
-      def build_daily_events_from_hourly(rows)
-        max_epoch_of = {}
-        rows.each do |row|
-          date, hour, epoch = row[0], row[1], row[2]
-          max_epoch_of[date] = [epoch, max_epoch_of[date] || 0].max
-        end
-        daily_events = max_epoch_of.map do |date, epoch|
-          {
-            uuid: SecureRandom.uuid,
-            resource_uri: resource.uri,
-            resource_unit: 'daily',
-            resource_time: date_hour_to_i(date, 0, resource.timezone),
-            resource_timezone: resource.timezone,
-            payload: {d: date.to_s, h: 0, epoch: epoch}.to_json,
+            payload: {table: table.to_sym, last_modified_time: last_modified_time}.to_json, # msec
           }
         end
       end
 
       def date_hour_to_i(date, hour, timezone)
         return 0 if date.nil?
-        Time.strptime("#{date.strftime("%Y-%m-%d")} #{hour.to_i} #{timezone}", '%Y-%m-%d %H %z').to_i
-      end
-
-      def q_periodic_last_epoch
-        @q_periodic_last_epoch ||= ::Bigquery.quote(periodic_last_epoch)
-      end
-
-      def q_singular_last_epoch
-        @q_singular_last_epoch ||= ::Bigquery.quote(singular_last_epoch)
-      end
-
-      def parsed_uri
-        @parsed_uri ||= URI.parse(resource.uri)
-      end
-
-      def parsed_query
-        @parsed_query ||= Rack::Utils.parse_nested_query(parsed_uri.query)
-      end
-
-      def db
-        @db ||= parsed_uri.path[1..-1].split('/')[0]
-      end
-
-      def schema
-        @schema ||= parsed_uri.path[1..-1].split('/')[1]
-      end
-
-      def table
-        @table ||= parsed_uri.path[1..-1].split('/')[2]
-      end
-
-      def date_column
-        parsed_query['date'] || $setting.dig(:bigquery, :date_column) || 'd'
-      end
-
-      def timestamp_column
-        parsed_query['timestamp'] || $setting.dig(:bigquery, :timestamp_column) || 't'
-      end
-
-      def where
-        parsed_query['where'] || {}
-      end
-
-      def q_db
-        @q_db ||= ::Bigquery.quote_identifier(db)
-      end
-
-      def q_schema
-        @q_schema ||= ::Bigquery.quote_identifier(schema)
-      end
-
-      def q_table
-        @q_table ||= ::Bigquery.quote_identifier(table)
-      end
-
-      def q_date
-        @q_date ||= ::Bigquery.quote_identifier(date_column)
-      end
-
-      def q_timestamp
-        @q_timestamp ||= ::Bigquery.quote_identifier(timestamp_column)
-      end
-
-      # Value specification:
-      # * A value looks like an integer string is treated as an integer.
-      # * If you want to treat it as as string, surround with double quote or single quote.
-      # * A value does not look like an integer is treated as a string.
-      # Operator specification:
-      # * Only equality is supported now
-      def q_where
-        @q_where ||= where.map do |col, val|
-          begin
-            val = Integer(val)
-          rescue => e
-            if val.start_with?("'") and val.end_with?("'")
-              val = val[1..-2]
-            elsif val.start_with?('"') and val.end_with?('"')
-              val = val[1..-2]
-            end
-          end
-          "#{::Bigquery.quote_identifier(col)} = #{::Bigquery.quote(val)}"
-        end.join(' AND ')
+        Time.strptime("#{date.to_s} #{hour.to_i} #{timezone}", '%Y-%m-%d %H %z').to_i
       end
     end
   end

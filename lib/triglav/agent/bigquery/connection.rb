@@ -1,5 +1,4 @@
 require 'triglav/agent/base/connection'
-require 'uri'
 require 'google/apis/bigquery_v2'
 require 'google/api_client/auth/key_utils'
 require 'securerandom'
@@ -35,6 +34,10 @@ module Triglav::Agent
   module Bigquery
     class Connection < Base::Connection
       attr_reader :connection_info
+
+      class Error < StandardError; end
+      class NotFoundError < Error; end
+      class ConfigError < Error; end
 
       def initialize(connection_info)
         @connection_info = connection_info
@@ -82,7 +85,8 @@ module Triglav::Agent
       #
       # creation_time [Integer] milli sec
       # last_modified_time [Integer] milli sec
-      def get_table(dataset:, table:)
+      def get_table(project: nil, dataset:, table:)
+        project ||= self.send(:project)
         begin
           $logger.debug { "Get table... #{project}:#{dataset}.#{table}" }
           response = client.get_table(project, dataset, table)
@@ -110,9 +114,10 @@ module Triglav::Agent
       # partition_id [String] partition id such as "20160307"
       # creation_time [Integer] milli sec
       # last_modified_time [Integer] milli sec
-      def get_partitions_summary(dataset:, table:, limit: nil)
+      def get_partitions_summary(project: nil, dataset:, table:, limit: nil)
+        project ||= self.send(:project)
         limit_stmt = limit ? " LIMIT #{limit.to_i}" : ""
-        result = query("select partition_id,creation_time,last_modified_time from [#{dataset}.#{table}$__PARTITIONS_SUMMARY__]#{limit_stmt}")
+        result = query("select partition_id,creation_time,last_modified_time from [#{project}:#{dataset}.#{table}$__PARTITIONS_SUMMARY__]#{limit_stmt}")
         result[:rows].map {|r| v = r[:f].map {|c| c[:v] }; [v[0], v[1].to_i, v[2].to_i] }
       end
 
