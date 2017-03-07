@@ -43,6 +43,12 @@ module Triglav::Agent
         @connection_info = connection_info
       end
 
+      def close
+        # google-api-ruby-client uses hurley and patches it to use httpclient gem inside.
+        # httpclient gem manages its connections in its connection pool, and
+        # releases or reuses its connections automatically.
+      end
+
       def client
         return @cached_client if @cached_client && @cached_client_expiration > Time.now
 
