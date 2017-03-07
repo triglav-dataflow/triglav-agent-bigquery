@@ -21,13 +21,13 @@ if File.exist?(File.join(ROOT, '.env'))
 
     class << self
       def startup
-        Timecop.travel(Time.parse("2017-03-06 23:00:00 +09:00"))
+        Timecop.travel(Time.parse("2017-03-07 23:00:00 +09:00"))
         FileUtils.rm_f($setting.status_file)
-        # setup_tables
+        setup_tables
       end
 
       def shutdown
-        # teardown_tables
+        teardown_tables
         Timecop.return
       end
     end
@@ -110,7 +110,7 @@ if File.exist?(File.join(ROOT, '.env'))
       monitor = Monitor.new(connection, resource)
       success = monitor.process do |events|
         assert { events != nil}
-        # assert { events.size == resource.span_in_days }
+        assert { events.size == resource.span_in_days }
         event = events.first
         assert { event.keys == %i[uuid resource_uri resource_unit resource_time resource_timezone payload] }
         assert { event[:resource_uri] == resource.uri }
@@ -140,7 +140,7 @@ if File.exist?(File.join(ROOT, '.env'))
       monitor = Monitor.new(connection, resource)
       success = monitor.process do |events|
         assert { events != nil}
-        # assert { events.size == resource.span_in_days }
+        assert { events.size == resource.span_in_days }
         event = events.first
         assert { event.keys == %i[uuid resource_uri resource_unit resource_time resource_timezone payload] }
         assert { event[:resource_uri] == resource.uri }

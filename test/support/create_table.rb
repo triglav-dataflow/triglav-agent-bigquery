@@ -15,32 +15,8 @@ module CreateTable
     'test_table'
   end
 
-  def table_with_suffix1
-    "#{table}_20170306"
-  end
-
-  def table_with_suffix2
-    "#{table}_20170307"
-  end
-
-  def table_with_hourly_suffix1
-    "#{table}_22_20170306"
-  end
-
-  def table_with_hourly_suffix2
-    "#{table}_23_20170306"
-  end
-
   def partitioned_table
     'test_partitioned_table'
-  end
-
-  def partitioned_table_with_partition1
-    "#{partitioned_table}$20170306"
-  end
-
-  def partitioned_table_with_partition2
-    "#{partitioned_table}$20170307"
   end
 
   def with_ignore_already_exists
@@ -62,13 +38,13 @@ module CreateTable
   def setup_tables
     with_ignore_already_exists { create_dataset }
     with_ignore_already_exists { create_table(table: table) }
-    with_ignore_already_exists { create_table(table: table_with_suffix1) }
-    with_ignore_already_exists { create_table(table: table_with_suffix2) }
-    with_ignore_already_exists { create_table(table: table_with_hourly_suffix1) }
-    with_ignore_already_exists { create_table(table: table_with_hourly_suffix2) }
+    with_ignore_already_exists { create_table(table: "#{table}_20170306") }
+    with_ignore_already_exists { create_table(table: "#{table}_20170307") }
+    with_ignore_already_exists { create_table(table: "#{table}_23_20170306") }
+    with_ignore_already_exists { create_table(table: "#{table}_23_20170307") }
     with_ignore_already_exists { create_partitioned_table(table: partitioned_table) }
-    with_ignore_already_exists { create_partition(table: partitioned_table_with_partition1) }
-    with_ignore_already_exists { create_partition(table: partitioned_table_with_partition2) }
+    with_ignore_already_exists { create_partition(table: "#{partitioned_table}$20170306") }
+    with_ignore_already_exists { create_partition(table: "#{partitioned_table}$20170307") }
   end
 
   def teardown_tables
@@ -82,6 +58,7 @@ module CreateTable
         dataset_id: dataset,
       }
     }
+    $logger.debug { "insert_dataset(#{project}, #{body}, {})" }
     client.insert_dataset(project, body, {})
   end
 
@@ -100,6 +77,7 @@ module CreateTable
         expiration_ms: options['time_partitioning']['expiration_ms'],
       }
     end
+    $logger.debug { "insert_table(#{project}, #{dataset}, #{body}, {})" }
     client.insert_table(project, dataset, body, {})
   end
 
@@ -109,6 +87,7 @@ module CreateTable
   end
 
   def create_partition(dataset: self.dataset, table: )
+    $logger.debug { "create_partition(#{project}, #{dataset}, #{table})" }
     body = {
       job_reference: {
         project_id: project,
@@ -135,6 +114,7 @@ module CreateTable
         upload_source: fp.path,
         content_type: "application/octet-stream",
       }
+      $logger.debug { "insert_job(#{project}, #{body}, #{opts})" }
       response = client.insert_job(project, body, opts)
       response = wait_load(response)
       if response.status.errors
@@ -144,7 +124,9 @@ module CreateTable
   end
 
   def delete_dataset(dataset: self.dataset)
-    client.delete_dataset(project, dataset, {delete_contents: true})
+    opts = {delete_contents: true}
+    $logger.debug { "delete_dataset(#{project}, #{dataset}, #{opts})" }
+    client.delete_dataset(project, dataset, opts)
   end
 
   def client
@@ -174,7 +156,7 @@ module CreateTable
       elapsed = Time.now - started
       status = _response.status.state
       if status == "DONE"
-        $logger.info {
+        $logger.debug {
           "job completed... " \
           "job_id:[#{job_id}] elapsed_time:#{elapsed.to_f}sec status:[#{status}]"
         }
@@ -182,10 +164,10 @@ module CreateTable
       elsif elapsed.to_i > max_polling_time
         message = "job checking... " \
           "job_id:[#{job_id}] elapsed_time:#{elapsed.to_f}sec status:[TIMEOUT]"
-          $logger.info { message }
+          $logger.debug { message }
           raise(message)
       else
-        $logger.info {
+        $logger.debug {
           "job checking... " \
           "job_id:[#{job_id}] elapsed_time:#{elapsed.to_f}sec status:[#{status}]"
         }
@@ -205,7 +187,7 @@ module CreateTable
       end
     end
 
-    $logger.info { "job response... job_id:[#{job_id}] response.statistics:#{_response.statistics.to_h}" }
+    $logger.debug { "job response... job_id:[#{job_id}] response.statistics:#{_response.statistics.to_h}" }
 
     _response
   end

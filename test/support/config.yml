@@ -16,12 +16,6 @@ test:
     retry_interval: 3 # sec
   bigquery:
     monitor_interval: 5
-    parallel:
-      size: 1 # default: 1
-      type: 'thread' # thread or process. default: thread
-    connection_pool:
-      size: 1 # default: same with parallel.size
-      timeout: 60 # sec. default: 60
     connection_info:
       "https://bigquery.cloud.google.com/table/":
         credentials_file: <%= ENV['GOOGLE_APPLICATION_CREDENTIALS'] || '~/.config/gcloud/application_default_credentials.json' %>
