@@ -123,7 +123,7 @@ The debug mode with --debug option ignores the `last_epoch` value in status file
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/triglav-workflow/triglav-agent-bigquery. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at https://github.com/triglav-dataflow/triglav-agent-bigquery. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 
 ## License
