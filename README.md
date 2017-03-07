@@ -119,7 +119,7 @@ Run triglav-anget-bigquery as:
 TRIGLAV_ENV=development bundle exec triglav-agent-bigquery --dotenv --debug -c example/config.yml
 ```
 
-The debug mode with --debug option ignores the `last_epoch` value in status file.
+The debug mode with --debug option ignores the `last_modified_time` value in status file.
 
 ## Contributing
 
