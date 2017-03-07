@@ -8,9 +8,7 @@ Triglav Agent for BigQuery
 
 ## Prerequisites
 
-* Bigquery table must have a DATE column for `daily` resource monitor
-* Bigquery table must have a TIMESTAMP or TIMESTAMPTZ column for `hourly` resource monitor
-* Bigquery view is not supported (since `epoch` column can not be retrieved)
+* BigQuery view is not supported
 
 ## Installation
 
@@ -75,23 +73,19 @@ This section is the special section for triglav-agent-bigquery.
 Resource URI must be a form of:
 
 ```
-bigquery://#{host}:#{port}/#{db}/#{schema}/#{table}
+https://bigquery.cloud.google.com/table/#{project}:#{dataset}.#{table}
 ```
 
-URI also accepts query parameters of `date`, `timestamp`, and `where`.
-
-* **date** (string): date column name (default: `d`)
-* **timestamp** (string): timestamp column name (defualt: `t`)
-* **where** (hash): where conditions (default: nil)
- * A value looks like an integer string is treated as an integer such as `1`
- * If you want to treat it as as string, surround with double quote or single quote such as `'0'`
- * A value does not look like an integer is treated as a string such as `foo`
- * Only equality operator is supported now
-
-ex)
+`#{table}` also accepts strftime formatted suffix such as
 
 ```
-?date=d&timestamp=t&where[id]=0&where[d]=2016-12-30
+#{table}_%Y%m%d
+```
+
+and strftime formatted partition decorator for a partitioned table such as
+
+```
+#{table}$%Y%m%d
 ```
 
 ## How it behaves

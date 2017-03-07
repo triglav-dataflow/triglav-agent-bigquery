@@ -12,3 +12,4 @@
 /token.yml
 /config.yml
 .ruby-version
+*.json

@@ -12,7 +12,7 @@ module StubApiClient
 
   def dummy_resource
     TriglavClient::AggregatedResourceEachResponse.new(
-      uri: 'bigquery://vdev/vdb/sandbox/triglav_test',
+      uri: 'https://bigquery.cloud.google.com/table/project:triglav_test.test_table',
       unit: 'daily',
       timezone: '+09:00',
       span_in_days: 2,
