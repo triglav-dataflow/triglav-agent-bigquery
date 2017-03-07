@@ -67,6 +67,9 @@ This section is the special section for triglav-agent-bigquery.
 
 * **monitor_interval**: The interval to watch tables (number, default: 60)
 * **connection_info**: key-value pairs of bigquery connection info where keys are resource URI pattern in regular expression, and values are connection infomation
+  * **auth_method**: Authentication method. Must be one of `service_account`, `authorized_user` (for oauth2), `compute_engine`, and `application_default`. Default obtains from credentials.
+  * **credentials_file**: Credentials file path such as service account json.
+  * **credentials**: Instead of `credentials_file`, you may pass json contents as a string
 
 ### Specification of Resource URI
 
