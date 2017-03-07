@@ -8,9 +8,7 @@ Triglav Agent for BigQuery
 
 ## Prerequisites
 
-* Bigquery table must have a DATE column for `daily` resource monitor
-* Bigquery table must have a TIMESTAMP or TIMESTAMPTZ column for `hourly` resource monitor
-* Bigquery view is not supported (since `epoch` column can not be retrieved)
+* BigQuery view is not supported
 
 ## Installation
 
