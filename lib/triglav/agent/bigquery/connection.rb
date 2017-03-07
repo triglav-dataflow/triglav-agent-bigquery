@@ -97,7 +97,7 @@ module Triglav::Agent
       # creation_time [Integer] milli sec
       # last_modified_time [Integer] milli sec
       def get_table(project: nil, dataset:, table:)
-        project ||= self.send(:project)
+        project ||= self.project
         begin
           $logger.debug { "Get table... #{project}:#{dataset}.#{table}" }
           response = client.get_table(project, dataset, table)
@@ -126,7 +126,7 @@ module Triglav::Agent
       # creation_time [Integer] milli sec
       # last_modified_time [Integer] milli sec
       def get_partitions_summary(project: nil, dataset:, table:, limit: nil)
-        project ||= self.send(:project)
+        project ||= self.project
         limit_stmt = limit ? " LIMIT #{limit.to_i}" : ""
         result = query(
           "select partition_id,creation_time,last_modified_time " \
@@ -134,6 +134,12 @@ module Triglav::Agent
           "order by partition_id asc#{limit_stmt}"
         )
         result[:rows].map {|r| v = r[:f].map {|c| c[:v] }; [v[0], v[1].to_i, v[2].to_i] }
+      end
+
+      def project
+        @project ||= ENV['GOOGLE_PROJECT'] || @connection_info.fetch(:project, nil) || credentials['project_id']
+        @project ||= credentials['client_email'].chomp('.iam.gserviceaccount.com').split('@').last if credentials['client_email']
+        @project ||= project_default
       end
 
       private
@@ -251,12 +257,6 @@ module Triglav::Agent
 
       def zone_default
         (config_default[:compute] || {})[:zone]
-      end
-
-      def project
-        @project ||= ENV['GOOGLE_PROJECT'] || @connection_info.fetch(:project, nil) || credentials['project_id']
-        @project ||= credentials['client_email'].chomp('.iam.gserviceaccount.com').split('@').last if credentials['client_email']
-        @project ||= project_default
       end
 
       def service_account

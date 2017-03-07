@@ -4,7 +4,7 @@ module CreateTable
   end
 
   def project
-    connection.send(:project)
+    connection.project
   end
 
   def dataset
