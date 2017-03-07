@@ -4,7 +4,7 @@ module CreateTable
   end
 
   def project
-    JSON.parse(File.read(connection_info[:credentials_file]))['project_id'] rescue ENV['BIGQUERY_PROJECT'] || raise('project id is empty')
+    ENV['BIGQUERY_PROJECT'] || (JSON.parse(File.read(connection_info[:credentials_file]))['project_id'] rescue nil) || raise('project id is empty')
   end
 
   def dataset
