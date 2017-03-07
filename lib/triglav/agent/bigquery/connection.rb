@@ -47,6 +47,11 @@ module Triglav::Agent
         # google-api-ruby-client uses hurley and patches it to use httpclient gem inside.
         # httpclient gem manages its connections in its connection pool, and
         # releases or reuses its connections automatically.
+        #
+        # ADVANCE NOTE: httpclient gem itself has own connection pool, so the connection pool
+        # machanism of triglav-agent-framework is just useless.
+        # httpclient gem creates a new connection as much as it is required, so the number of
+        # connections typically will be the same with the number of threads (?).
       end
 
       def client
