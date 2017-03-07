@@ -12,8 +12,7 @@ require 'fileutils'
 # TRIGLAV_USERNAME=triglav_test
 # TRIGLAV_PASSWORD=triglav_test
 # GOOGLE_APPLICATION_CREDENTIALS: "~/.config/gcloud/application_default_credentials.json"
-# BIGQUERY_PROJECT: xxx-xxx-xxx
-# BIGQUERY_DATASET: triglav_test
+# GOOGLE_PROJECT: xxx-xxx-xxx
 if File.exist?(File.join(ROOT, '.env'))
   class TestMonitor < Test::Unit::TestCase
     include CreateTable

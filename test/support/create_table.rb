@@ -4,11 +4,11 @@ module CreateTable
   end
 
   def project
-    ENV['BIGQUERY_PROJECT'] || (JSON.parse(File.read(connection_info[:credentials_file]))['project_id'] rescue nil) || raise('project id is empty')
+    connection.send(:project)
   end
 
   def dataset
-    ENV['BIGQUERY_DATASET'] || 'triglav_test'
+    'triglav_test'
   end
 
   def table

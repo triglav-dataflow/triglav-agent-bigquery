@@ -17,7 +17,7 @@ defaults: &defaults
   bigquery:
     monitor_interval: 5
     connection_info:
-      "https://bigquery.cloud.google.com/table/<%= ENV['BIGQUERY_PROJECT'] || 'your-project' %>":
+      "https://bigquery.cloud.google.com/table/<%= ENV['GOOGLE_PROJECT'] || 'your-project' %>":
         # auth_method: # service_account, authorized_user, or compute_engine. default: get type from credentials
         credentials_file: ~/.config/gcloud/application_default_credentials.json
         # credentials: |
