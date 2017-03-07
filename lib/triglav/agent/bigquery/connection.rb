@@ -79,7 +79,7 @@ module Triglav::Agent
           auth = Google::Auth::GCECredentials.new
         when 'service_account'
           key = StringIO.new(credentials.to_json)
-          auth = Google::Auth::ServiceAccountCredentials.make_creds(json_key_io: key, scope: @scope)
+          auth = Google::Auth::ServiceAccountCredentials.make_creds(json_key_io: key, scope: scope)
         when 'application_default'
           auth = Google::Auth.get_application_default([scope])
         else
