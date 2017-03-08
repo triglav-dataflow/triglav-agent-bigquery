@@ -264,15 +264,15 @@ module Triglav::Agent
       end
 
       def retries
-        @retries ||= ENV['RETRIES'] || @connection_info.fetch(:retries, 5)
+        @retries ||= ENV['RETRIES'] || @connection_info.fetch(:retries, nil) || $setting.dig(:bigquery, :retries) || 5
       end
 
       def timeout_sec
-        @timeout_sec ||= ENV['TIMEOUT_SEC'] || @connection_info.fetch(:timeout_sec, 300)
+        @timeout_sec ||= ENV['TIMEOUT_SEC'] || @connection_info.fetch(:timeout_sec, nil) || $setting.dig(:bigquery, :timeout_sec) || 300
       end
 
       def open_timeout_sec
-        @open_timeout_sec ||= ENV['OPEN_TIMEOUT_SEC'] || @connection_info.fetch(:open_timeout_sec, 300)
+        @open_timeout_sec ||= ENV['OPEN_TIMEOUT_SEC'] || @connection_info.fetch(:open_timeout_sec, nil) || $setting.dib(:bigquery, :open_timeout_sec) || 300
       end
     end
   end

@@ -16,9 +16,9 @@ test:
     retry_interval: 3 # sec
   bigquery:
     monitor_interval: 5
+    retries: 5
+    timeout_sec: 300
+    open_timeout_sec: 300
     connection_info:
       "https://bigquery.cloud.google.com/table/":
         credentials_file: <%= ENV['GOOGLE_APPLICATION_CREDENTIALS'] || '~/.config/gcloud/application_default_credentials.json' %>
-        retries: 5
-        timeout_sec: 300
-        open_timeout_sec: 300
