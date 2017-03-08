@@ -272,7 +272,7 @@ module Triglav::Agent
       end
 
       def open_timeout_sec
-        @open_timeout_sec ||= ENV['OPEN_TIMEOUT_SEC'] || @connection_info.fetch(:open_timeout_sec, nil) || $setting.dib(:bigquery, :open_timeout_sec) || 300
+        @open_timeout_sec ||= ENV['OPEN_TIMEOUT_SEC'] || @connection_info.fetch(:open_timeout_sec, nil) || $setting.dig(:bigquery, :open_timeout_sec) || 300
       end
     end
   end
