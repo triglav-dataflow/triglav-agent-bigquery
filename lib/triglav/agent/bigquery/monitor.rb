@@ -71,8 +71,8 @@ module Triglav::Agent
         last_modified_times = @status.get
         removes = last_modified_times.keys - tables.keys
         appends = tables.keys - last_modified_times.keys
-        removes.each {|path| last_modified_times.delete(path) }
-        appends.each {|path| last_modified_times[path] = max_last_modified_time }
+        removes.each {|table| last_modified_times.delete(table) }
+        appends.each {|table| last_modified_times[table] = max_last_modified_time }
         last_modified_times
       end
 
