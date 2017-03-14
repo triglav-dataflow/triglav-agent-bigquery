@@ -6,11 +6,11 @@ require 'triglav/agent/bigquery/version'
 Gem::Specification.new do |spec|
   spec.name          = "triglav-agent-bigquery"
   spec.version       = Triglav::Agent::Bigquery::VERSION
-  spec.authors       = ["Naotoshi Seo"]
-  spec.email         = ["sonots@gmail.com"]
+  spec.authors       = ["Triglav Team"]
+  spec.email         = ["triglav_admin_my@dena.jp"]
 
-  spec.summary       = %q{Triglav Agent for Bigquery.}
-  spec.description   = %q{Triglav Agent for Bigquery.}
+  spec.summary       = %q{BigQuery agent for triglav, data-driven workflow tool.}
+  spec.description   = %q{BigQuery agent for triglav, data-driven workflow tool.}
   spec.homepage      = "https://github.com/triglav-dataflow/triglav-agent-bigquery"
   spec.license       = "MIT"
 
