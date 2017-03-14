@@ -6,18 +6,21 @@ require 'securerandom'
 module Triglav::Agent
   module Bigquery
     class Monitor < Base::Monitor
-      attr_reader :connection, :resource
+      attr_reader :connection, :resource_uri_prefix, :resource
 
       # @param [Triglav::Agent::Bigquery::Connection] connection
+      # @param [String] resource_uri_prefix
       # @param [TriglavClient::ResourceResponse] resource
       # resource:
       #   uri: https://bigquery.cloud.google.com/table/project:dataset.table
       #   unit: 'daily', 'hourly', or 'singular'
       #   timezone: '+09:00'
       #   span_in_days: 32
-      def initialize(connection, resource)
+      def initialize(connection, resource_uri_prefix, resource)
         @connection = connection
+        @resource_uri_prefix = resource_uri_prefix
         @resource = resource
+        @status = Triglav::Agent::Status.new(resource_uri_prefix, resource.uri)
       end
 
       def process
@@ -60,27 +63,16 @@ module Triglav::Agent
 
       def update_status_file(last_modified_times)
         last_modified_times[:max] = last_modified_times.values.max
-        Triglav::Agent::StorageFile.set(
-          $setting.status_file,
-          [resource.uri.to_sym, :last_modified_time],
-          last_modified_times
-        )
+        @status.set(last_modified_times)
       end
 
       def get_last_modified_times
-        max_last_modified_time = Triglav::Agent::StorageFile.getsetnx(
-          $setting.status_file,
-          [resource.uri.to_sym, :last_modified_time, :max],
-          $setting.debug? ? 0 : get_current_time
-        )
-        last_modified_times = Triglav::Agent::StorageFile.get(
-          $setting.status_file,
-          [resource.uri.to_sym, :last_modified_time]
-        )
+        max_last_modified_time = @status.getsetnx([:max], $setting.debug? ? 0 : get_current_time)
+        last_modified_times = @status.get
         removes = last_modified_times.keys - tables.keys
         appends = tables.keys - last_modified_times.keys
-        removes.each {|path| last_modified_times.delete(path) }
-        appends.each {|path| last_modified_times[path] = max_last_modified_time }
+        removes.each {|table| last_modified_times.delete(table) }
+        appends.each {|table| last_modified_times[table] = max_last_modified_time }
         last_modified_times
       end
 

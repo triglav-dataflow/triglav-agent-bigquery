@@ -30,7 +30,7 @@ if File.exist?(File.join(ROOT, '.env'))
     end
 
     def test_get_table
-      result = connection.get_table(dataset: dataset, table: table_with_suffix1)
+      result = connection.get_table(dataset: dataset, table: "#{table}_20170306")
       assert { result.keys == %i[id creation_time last_modified_time location num_bytes num_rows] }
       assert { result[:creation_time].is_a?(Integer) }
       assert { result[:last_modified_time].is_a?(Integer) }
