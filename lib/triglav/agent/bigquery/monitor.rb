@@ -67,8 +67,8 @@ module Triglav::Agent
       end
 
       def get_last_modified_times
-        max_last_modified_time = @status.getsetnx([:max], $setting.debug? ? 0 : get_current_time)
         last_modified_times = @status.get
+        max_last_modified_time = last_modified_times[:max] || @status.getsetnx([:max], $setting.debug? ? 0 : get_current_time)
         removes = last_modified_times.keys - tables.keys
         appends = tables.keys - last_modified_times.keys
         removes.each {|table| last_modified_times.delete(table) }
