@@ -164,7 +164,7 @@ module Triglav::Agent
         }
         opts = {}
 
-        $logger.info { "insert_job(#{project}, #{body}, #{opts})" }
+        $logger.debug { "insert_job(#{project}, #{body}, #{opts})" }
         job_res = client.insert_job(project, body, opts)
 
         if options[:dry_run]
