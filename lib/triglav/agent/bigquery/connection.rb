@@ -131,7 +131,7 @@ module Triglav::Agent
         result = query(
           "select partition_id,creation_time,last_modified_time " \
           "from [#{project}:#{dataset}.#{table}$__PARTITIONS_SUMMARY__] " \
-          "order by partition_id asc#{limit_stmt}"
+          "order by partition_id desc#{limit_stmt}"
         )
         result[:rows].map {|r| v = r[:f].map {|c| c[:v] }; [v[0], v[1].to_i, v[2].to_i] }
       end
