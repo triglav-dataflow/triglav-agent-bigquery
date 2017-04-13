@@ -96,9 +96,9 @@ module Triglav::Agent
       def self.resource_unit_valid?(resource)
         units = resource.unit.split(',').sort
         return false if units.size >= 2
-        if units.include?('hourly')
-          return false unless resource.uri.match(/%H/)
-        end
+        # if units.include?('hourly')
+        #   return false unless resource.uri.match(/%H/)
+        # end
         # if units.include?('daily')
         #   return false unless resource.uri.match(/%d/)
         # end
