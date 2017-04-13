@@ -274,7 +274,7 @@ module Triglav::Agent
 
       # For google-api-client < 0.11.0. Deprecated
       def timeout_sec
-        @timeout_sec ||= ENV['TIMEOUT_SEC'] || @connection_info.fetch(:timeout_sec, nil) || $setting.dig(:bigquery, :timeout_sec) || 60
+        @timeout_sec ||= ENV['TIMEOUT_SEC'] || @connection_info.fetch(:timeout_sec, nil) || $setting.dig(:bigquery, :timeout_sec)
       end
 
       def send_timeout_sec
@@ -282,7 +282,7 @@ module Triglav::Agent
       end
 
       def read_timeout_sec
-        @read_timeout_sec ||= ENV['read_timeout_sec'] || @connection_info.fetch(:read_timeout_sec, nil) || $setting.dig(:bigquery, :read_timeout_sec) || timeout_sec
+        @read_timeout_sec ||= ENV['read_timeout_sec'] || @connection_info.fetch(:read_timeout_sec, nil) || $setting.dig(:bigquery, :read_timeout_sec) || timeout_sec || 300
       end
 
       def open_timeout_sec
