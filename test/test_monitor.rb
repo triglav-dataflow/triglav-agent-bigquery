@@ -68,8 +68,8 @@ if File.exist?(File.join(ROOT, '.env'))
       resource = build_resource(unit: 'daily,hourly')
       assert { Monitor.resource_valid?(resource) == false }
 
-      resource = build_resource(unit: 'hourly', uri: build_uri(project, dataset, "#{table}_%Y%m%d"))
-      assert { Monitor.resource_valid?(resource) == false }
+      # resource = build_resource(unit: 'hourly', uri: build_uri(project, dataset, "#{table}_%Y%m%d"))
+      # assert { Monitor.resource_valid?(resource) == false }
 
       # resource = build_resource(unit: 'daily', uri: build_uri(project, dataset, "#{table}_%Y%m"))
       # assert { Monitor.resource_valid?(resource) == false }
