@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "triglav-agent"
   spec.add_dependency "triglav_client"
-  spec.add_dependency "google-api-client"
+  spec.add_dependency "google-api-client", ">= 0.11.0"
   spec.add_dependency "ini_file"
 
   spec.add_development_dependency "bundler", "~> 1.11"

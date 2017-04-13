@@ -59,8 +59,9 @@ module Triglav::Agent
 
         client = Google::Apis::BigqueryV2::BigqueryService.new
         client.request_options.retries = retries
-        client.request_options.timeout_sec = timeout_sec
-        client.request_options.open_timeout_sec = open_timeout_sec
+        client.client_options.send_timeout_sec = send_timeout_sec
+        client.client_options.read_timeout_sec = read_timeout_sec
+        client.client_options.open_timeout_sec = open_timeout_sec
 
         scope = "https://www.googleapis.com/auth/bigquery"
 
@@ -267,8 +268,12 @@ module Triglav::Agent
         @retries ||= ENV['RETRIES'] || @connection_info.fetch(:retries, nil) || $setting.dig(:bigquery, :retries) || 5
       end
 
-      def timeout_sec
-        @timeout_sec ||= ENV['TIMEOUT_SEC'] || @connection_info.fetch(:timeout_sec, nil) || $setting.dig(:bigquery, :timeout_sec) || 300
+      def send_timeout_sec
+        @send_timeout_sec ||= ENV['SEND_TIMEOUT_SEC'] || @connection_info.fetch(:send_timeout_sec, nil) || $setting.dig(:bigquery, :send_timeout_sec) || 60
+      end
+
+      def read_timeout_sec
+        @read_timeout_sec ||= ENV['read_timeout_sec'] || @connection_info.fetch(:read_timeout_sec, nil) || $setting.dig(:bigquery, :read_timeout_sec) || 300
       end
 
       def open_timeout_sec
