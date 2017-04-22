@@ -190,7 +190,7 @@ module Triglav::Agent
             break if res[:jobComplete]
             sleep 3
 
-            if (Time.now - started).to_i > HARD_TIMEOUT_SEC
+            if (Time.now - started).to_i > hard_timeout_sec
               raise RuntimeError.new("Query is timeout")
             end
           end
@@ -287,6 +287,10 @@ module Triglav::Agent
 
       def open_timeout_sec
         @open_timeout_sec ||= ENV['OPEN_TIMEOUT_SEC'] || @connection_info.fetch(:open_timeout_sec, nil) || $setting.dig(:bigquery, :open_timeout_sec) || 300
+      end
+
+      def hard_timeout_sec
+        read_timeout_sec * 2
       end
     end
   end
